@@ -30,13 +30,16 @@ def get_articles() -> Generator[dict, None, None]:
     while True:
         response = session.get(get_url).json()
 
-        next_sinceid = response['data']['cardlistInfo']['since_id']
-
         cards = response['data']['cards']
         if not cards:
             break
 
         yield from iter(cards)
+
+        try:
+            next_sinceid = response['data']['cardlistInfo']['since_id']
+        except KeyError:
+            break
 
         # Next page: https://m.weibo.cn/api/container/getIndex?type=uid&value=1728744882&containerid=1076031728744882&since_id=4872609831323015
         get_url = MAIN_URL + f'&since_id={next_sinceid}'
@@ -44,20 +47,24 @@ def get_articles() -> Generator[dict, None, None]:
 
 def interpret_videos():
     for card in get_articles():
-        if 'page_info' not in card['mblog']:
-            continue
-
         text = card['mblog']['text']
         english_word = _keep_ascii_chars(text)
+        if not english_word:
+            # TODO: translate it?
+            ...
+
         posted = parse(card['mblog']['created_at'])
 
         # Save the JSON file
-        json_target = Path(__file__).parent / f'videos/{posted:%Y%m}/{posted:%Y%m%d}_{english_word}.json'
+        json_target = Path(__file__).parent / f'videos/{posted:%Y%m}/{posted:%Y%m%d}_{english_word[:50]}.json'
         json_target.parent.mkdir(parents=True, exist_ok=True)
         if json_target.exists():
             continue
 
         json_target.write_text(json.dumps(card, indent=4), encoding='utf8')
+
+        if 'page_info' not in card['mblog']:
+            continue
 
         video_info = card['mblog']['page_info']
         if video_info['type'] != 'video':

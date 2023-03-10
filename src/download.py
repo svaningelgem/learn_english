@@ -56,7 +56,7 @@ def interpret_videos():
         posted = parse(card['mblog']['created_at'])
 
         # Save the JSON file
-        json_target = Path(__file__).parent / f'videos/{posted:%Y%m}/{posted:%Y%m%d}_{english_word[:50]}.json'
+        json_target = Path(__file__).parent / f'../html/videos/{posted:%Y%m}/{posted:%Y%m%d}_{english_word[:50]}.json'
         json_target.parent.mkdir(parents=True, exist_ok=True)
         if json_target.exists():
             continue

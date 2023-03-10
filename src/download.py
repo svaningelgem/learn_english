@@ -19,7 +19,10 @@ def strip_tags(txt):
 
 
 def _keep_ascii_chars(txt):
-    return re.sub('[^-_.a-z0-9A-Z ]', '', strip_tags(txt), flags=re.IGNORECASE).strip()
+    txt = re.sub('[^-_.,a-z0-9A-Z ]', '', strip_tags(txt), flags=re.IGNORECASE)
+    txt = txt.strip(' ,.-_')  # Remove extra chars
+    txt = re.sub(' +', ' ', txt)  # remove double spaces
+    return txt
 
 
 def get_articles() -> Generator[dict, None, None]:
@@ -41,36 +44,46 @@ def get_articles() -> Generator[dict, None, None]:
 
 def interpret_videos():
     for card in get_articles():
+        if 'page_info' not in card['mblog']:
+            continue
+
         text = card['mblog']['text']
         english_word = _keep_ascii_chars(text)
         posted = parse(card['mblog']['created_at'])
+
+        # Save the JSON file
+        json_target = Path(__file__).parent / f'videos/{posted:%Y%m}/{posted:%Y%m%d}_{english_word}.json'
+        json_target.parent.mkdir(parents=True, exist_ok=True)
+        if json_target.exists():
+            continue
+
+        json_target.write_text(json.dumps(card, indent=4), encoding='utf8')
+
         video_info = card['mblog']['page_info']
-        assert video_info['type'] == 'video'
-        img = video_info['page_pic']['url']
-        extension = img.rsplit('.', 1)[-1]
-        video = video_info['media_info']['stream_url_hd']
-        video_extension = video.split('?')[0].rsplit('.')[-1]
-
-        # Store it
-        img_target = Path(__file__).parent / f'videos/{posted:%Y%m}/{posted:%Y%m%d}_{english_word}.{extension}'
-        if img_target.exists():
-            continue  # No need to re-download it!
-
-        img_target.parent.mkdir(parents=True, exist_ok=True)
-
-        # JSON
-        img_target.with_suffix('.json').write_text(json.dumps(card, indent=4), encoding='utf8')
+        if video_info['type'] != 'video':
+            continue
 
         # Image
+        img = video_info['page_pic']['url']
+        extension = img.rsplit('.', 1)[-1]
         response = session.get(img, headers={'Referer': 'https://m.weibo.cn/'})
         assert response
-        img_target.write_bytes(response.content)
+        json_target.with_suffix(f'.{extension}').write_bytes(response.content)
 
         # Video
-        response = session.get(video)
-        assert response
-        vid_target = img_target.with_suffix(f'.{video_extension}')
-        vid_target.write_bytes(response.content)
+        urls = [
+            video_info['media_info']['stream_url_hd'],
+            video_info['media_info']['stream_url'],
+        ]
+        urls.extend(video_info['urls'].values())
+        for video in urls:
+            response = session.get(video)
+            if not response:
+                continue
+
+            video_extension = video.split('?')[0].rsplit('.')[-1]
+            json_target.with_suffix(f'.{video_extension}').write_bytes(response.content)
+            break
 
 
 if __name__ == '__main__':

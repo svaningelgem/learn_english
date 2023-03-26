@@ -14,7 +14,8 @@ ENTRYPOINT ["streamlit", "run", "main.py", "--server.port=8501", "--server.addre
 
 RUN \
     --mount=type=cache,target=/var/cache/apt \
-    apt update && apt -y upgrade
+    apt update && apt -y upgrade && \
+    apt install -y curl
 
 COPY requirements.txt /html
 RUN \

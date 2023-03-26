@@ -46,7 +46,12 @@ def get_articles() -> Generator[dict, None, None]:
 
 
 def interpret_videos():
+    already_present = 0
+
     for card in get_articles():
+        if already_present > 5:  # We already have more than 5 videos... So just stop trying.
+            break
+
         text = card['mblog']['text']
         english_word = _keep_ascii_chars(text)
         if not english_word:
@@ -59,6 +64,7 @@ def interpret_videos():
         json_target = Path(__file__).parent / f'../html/videos/{posted:%Y%m}/{posted:%Y%m%d}_{english_word[:50]}.json'
         json_target.parent.mkdir(parents=True, exist_ok=True)
         if json_target.exists():
+            already_present += 1
             continue
 
         json_target.write_text(json.dumps(card, indent=4), encoding='utf8')

@@ -1,17 +1,17 @@
 import json
 import re
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import bs4
 import requests
 from dateutil.parser import parse
 
-MAIN_URL = 'https://m.weibo.cn/api/container/getIndex?type=uid&value=1728744882&containerid=1076031728744882'
-STRIP_TAGS = re.compile('<.*?>')
+MAIN_URL = "https://m.weibo.cn/api/container/getIndex?type=uid&value=1728744882&containerid=1076031728744882"
+STRIP_TAGS = re.compile("<.*?>")
 
 session = requests.Session()
-session.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/110.0'
+session.headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/110.0"
 
 
 def strip_tags(txt):
@@ -19,9 +19,9 @@ def strip_tags(txt):
 
 
 def _keep_ascii_chars(txt):
-    txt = re.sub('[^-_.,a-z0-9A-Z ]', '', strip_tags(txt), flags=re.IGNORECASE)
-    txt = txt.strip(' ,.-_')  # Remove extra chars
-    txt = re.sub(' +', ' ', txt)  # remove double spaces
+    txt = re.sub("[^-_.,a-z0-9A-Z ]", "", strip_tags(txt), flags=re.IGNORECASE)
+    txt = txt.strip(" ,.-_")  # Remove extra chars
+    txt = re.sub(" +", " ", txt)  # remove double spaces
     return txt
 
 
@@ -30,19 +30,19 @@ def get_articles() -> Generator[dict, None, None]:
     while True:
         response = session.get(get_url).json()
 
-        cards = response['data']['cards']
+        cards = response["data"]["cards"]
         if not cards:
             break
 
         yield from iter(cards)
 
         try:
-            next_sinceid = response['data']['cardlistInfo']['since_id']
+            next_sinceid = response["data"]["cardlistInfo"]["since_id"]
         except KeyError:
             break
 
         # Next page: https://m.weibo.cn/api/container/getIndex?type=uid&value=1728744882&containerid=1076031728744882&since_id=4872609831323015
-        get_url = MAIN_URL + f'&since_id={next_sinceid}'
+        get_url = MAIN_URL + f"&since_id={next_sinceid}"
 
 
 def interpret_videos():
@@ -52,52 +52,52 @@ def interpret_videos():
         if already_present > 5:  # We already have more than 5 videos... So just stop trying.
             break
 
-        text = card['mblog']['text']
+        text = card["mblog"]["text"]
         english_word = _keep_ascii_chars(text)
         if not english_word:
             # TODO: translate it?
             ...
 
-        posted = parse(card['mblog']['created_at'])
+        posted = parse(card["mblog"]["created_at"])
 
         # Save the JSON file
-        json_target = Path(__file__).parent / f'../html/videos/{posted:%Y%m}/{posted:%Y%m%d}_{english_word[:50]}.json'
+        json_target = Path(__file__).parent / f"../html/videos/{posted:%Y%m}/{posted:%Y%m%d}_{english_word[:50]}.json"
         json_target.parent.mkdir(parents=True, exist_ok=True)
         if json_target.exists():
             already_present += 1
             continue
 
-        json_target.write_text(json.dumps(card, indent=4), encoding='utf8')
+        json_target.write_text(json.dumps(card, indent=4), encoding="utf8")
 
-        if 'page_info' not in card['mblog']:
+        if "page_info" not in card["mblog"]:
             continue
 
-        video_info = card['mblog']['page_info']
-        if video_info['type'] != 'video':
+        video_info = card["mblog"]["page_info"]
+        if video_info["type"] != "video":
             continue
 
         # Image
-        img = video_info['page_pic']['url']
-        extension = img.rsplit('.', 1)[-1]
-        response = session.get(img, headers={'Referer': 'https://m.weibo.cn/'})
+        img = video_info["page_pic"]["url"]
+        extension = img.rsplit(".", 1)[-1]
+        response = session.get(img, headers={"Referer": "https://m.weibo.cn/"})
         assert response
-        json_target.with_suffix(f'.{extension}').write_bytes(response.content)
+        json_target.with_suffix(f".{extension}").write_bytes(response.content)
 
         # Video
         urls = [
-            video_info['media_info']['stream_url_hd'],
-            video_info['media_info']['stream_url'],
+            video_info["media_info"]["stream_url_hd"],
+            video_info["media_info"]["stream_url"],
         ]
-        urls.extend(video_info['urls'].values())
+        urls.extend(video_info["urls"].values())
         for video in urls:
             response = session.get(video)
             if not response:
                 continue
 
-            video_extension = video.split('?')[0].rsplit('.')[-1]
-            json_target.with_suffix(f'.{video_extension}').write_bytes(response.content)
+            video_extension = video.split("?")[0].rsplit(".")[-1]
+            json_target.with_suffix(f".{video_extension}").write_bytes(response.content)
             break
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     interpret_videos()

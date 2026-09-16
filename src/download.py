@@ -11,7 +11,9 @@ MAIN_URL = "https://m.weibo.cn/api/container/getIndex?type=uid&value=1728744882&
 STRIP_TAGS = re.compile("<.*?>")
 
 session = requests.Session()
-session.headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/110.0"
+session.headers["User-Agent"] = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/110.0"
+)
 
 
 def strip_tags(txt):
@@ -49,7 +51,9 @@ def interpret_videos():
     already_present = 0
 
     for card in get_articles():
-        if already_present > 5:  # We already have more than 5 videos... So just stop trying.
+        if (
+            already_present > 5
+        ):  # We already have more than 5 videos... So just stop trying.
             break
 
         text = card["mblog"]["text"]
@@ -61,7 +65,10 @@ def interpret_videos():
         posted = parse(card["mblog"]["created_at"])
 
         # Save the JSON file
-        json_target = Path(__file__).parent / f"../html/videos/{posted:%Y%m}/{posted:%Y%m%d}_{english_word[:50]}.json"
+        json_target = (
+            Path(__file__).parent
+            / f"../html/videos/{posted:%Y%m}/{posted:%Y%m%d}_{english_word[:50]}.json"
+        )
         json_target.parent.mkdir(parents=True, exist_ok=True)
         if json_target.exists():
             already_present += 1

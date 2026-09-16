@@ -17,9 +17,9 @@ RUN \
     apt update && apt -y upgrade && \
     apt install -y curl
 
-COPY requirements.txt /html
+COPY pyproject.toml /tmp/
 RUN \
-    --mount=type=cache,target=/root/.cache/pip \
-    pip3 install -U -r requirements.txt && rm requirements.txt
+    --mount=type=cache,target=/root/.cache/uv \
+    pip3 install -U uv && uv pip install --system -r /tmp/pyproject.toml && rm /tmp/pyproject.toml
 
 COPY html/main.py /html

@@ -1,7 +1,0 @@
-name: learn_english
-dependencies:
-  - pip
-  - pip:
-    - streamlit
-    - bs4
-    - requests

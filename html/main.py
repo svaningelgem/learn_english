@@ -3,8 +3,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-
-video_path = (Path(__file__).parent / 'videos').resolve().absolute()
+video_path = (Path(__file__).parent / "videos").resolve().absolute()
 
 
 @st.cache_data(show_spinner=False)
@@ -13,15 +12,15 @@ def load_data():
     img = []
     movie = []
 
-    for json in video_path.rglob('*.json'):
+    for json in video_path.rglob("*.json"):
         video = image = None
 
-        for other in json.parent.glob(json.stem + '.*'):
-            if other.suffix == '.json':
+        for other in json.parent.glob(json.stem + ".*"):
+            if other.suffix == ".json":
                 continue
-            if other.suffix.lower() == '.mp4':
+            if other.suffix.lower() == ".mp4":
                 video = other
-            elif other.suffix.lower() in ['.jpg', '.jpeg', '.png']:
+            elif other.suffix.lower() in [".jpg", ".jpeg", ".png"]:
                 image = other
             else:
                 raise ValueError(f"Invalid file? ({other})")
@@ -31,9 +30,8 @@ def load_data():
             img.append(str(image))
             movie.append(str(video))
 
-    return (
-        pd.DataFrame({'name': name, 'img': img, 'movie': movie})
-        .sort_values(by='img', ascending=False, ignore_index=True)
+    return pd.DataFrame({"name": name, "img": img, "movie": movie}).sort_values(
+        by="img", ascending=False, ignore_index=True
     )
 
 
@@ -46,13 +44,9 @@ rows = 20
 data = load_data()
 
 
-total_pages = (
-    int(len(data) / rows) if int(len(data) / rows) > 0 else 1
-)
+total_pages = int(len(data) / rows) if int(len(data) / rows) > 0 else 1
 
-current_page = st.sidebar.number_input(
-    "Page", min_value=1, max_value=total_pages, step=1
-)
+current_page = st.sidebar.number_input("Page", min_value=1, max_value=total_pages, step=1)
 
 st.sidebar.markdown(f"Page **{current_page}** of **{total_pages}** ")
 
@@ -78,5 +72,5 @@ with st.container():
     for i in range(rows):
         div = st.container()
         with div:
-            st.header(to_show.name[i], anchor=f'word_{i}')
-            st.video(str(Path(to_show.movie[i]).relative_to(video_path.parent)).replace('\\', '/'))
+            st.header(to_show.name[i], anchor=f"word_{i}")
+            st.video(str(Path(to_show.movie[i]).relative_to(video_path.parent)).replace("\\", "/"))

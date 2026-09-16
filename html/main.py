@@ -37,7 +37,10 @@ def load_data():
 
 @st.cache_data(show_spinner=False)
 def split_frame(input_df):
-    return [input_df.loc[i : i + 20 - 1, :].reset_index() for i in range(0, len(input_df), 20)]
+    return [
+        input_df.loc[i : i + 20 - 1, :].reset_index()
+        for i in range(0, len(input_df), 20)
+    ]
 
 
 rows = 20
@@ -46,7 +49,9 @@ data = load_data()
 
 total_pages = int(len(data) / rows) if int(len(data) / rows) > 0 else 1
 
-current_page = st.sidebar.number_input("Page", min_value=1, max_value=total_pages, step=1)
+current_page = st.sidebar.number_input(
+    "Page", min_value=1, max_value=total_pages, step=1
+)
 
 st.sidebar.markdown(f"Page **{current_page}** of **{total_pages}** ")
 
@@ -73,4 +78,8 @@ with st.container():
         div = st.container()
         with div:
             st.header(to_show.name[i], anchor=f"word_{i}")
-            st.video(str(Path(to_show.movie[i]).relative_to(video_path.parent)).replace("\\", "/"))
+            st.video(
+                str(Path(to_show.movie[i]).relative_to(video_path.parent)).replace(
+                    "\\", "/"
+                )
+            )
